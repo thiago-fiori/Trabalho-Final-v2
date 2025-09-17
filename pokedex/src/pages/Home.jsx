@@ -1,62 +1,94 @@
-import React, { useState, useEffect } from 'react'
-import { Container, TextField, Button, CircularProgress, Grid } from '@mui/material'
-import { getPokemonList } from '../services/pokeService'
-import PokemonCard from '../components/PokemonCard'
-
+// src/pages/Home.jsx
+import { useEffect, useState } from "react";
+import { Grid, TextField, Button, Box } from "@mui/material";
+import PokemonCard from "../components/PokemonCard";
 
 export default function Home() {
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState(null)
-    const [pokemons, setPokemons] = useState([])
-    const [page, setPage] = useState(0)
-    const limit = 20
-    const [search, setSearch] = useState('')
+  const [pokemons, setPokemons] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
+  const pokemonsPerPage = 20;
 
-    useEffect(() => {
-        let isMounted = true
-        const fetch = async () => {
-            setLoading(true)
-            setError(null)
-            try {
-                const data = await getPokemonList(limit, page * limit)
-                if (isMounted) setPokemons(data.results)
-            } catch (err) {
-                setError('Erro ao buscar Pokémons. Tente novamente.')
-            } finally {
-                setLoading(false)
-            }
-        }
+  // Carrega TODOS os pokémons de uma vez (somente nome e URL)
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const res = await fetch("https://pokeapi.co/api/v2/pokemon?limit=1008");
+        const data = await res.json();
+        setPokemons(data.results);
+        setFiltered(data.results);
+      } catch (error) {
+        console.error("Erro ao buscar pokémons:", error);
+      }
+    };
+    fetchAll();
+  }, []);
 
+  // Função de busca
+  const handleSearch = () => {
+    if (search.trim() === "") {
+      setFiltered(pokemons);
+    } else {
+      const results = pokemons.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase())
+      );
+      setFiltered(results);
+      setCurrentPage(1); // Reseta para página 1
+    }
+  };
 
-        fetch()
-        return () => { isMounted = false }
-    }, [page])
+  // Paginação
+  const indexOfLast = currentPage * pokemonsPerPage;
+  const indexOfFirst = indexOfLast - pokemonsPerPage;
+  const currentPokemons = filtered.slice(indexOfFirst, indexOfLast);
 
+  const totalPages = Math.ceil(filtered.length / pokemonsPerPage);
 
-    const filtered = pokemons.filter(p => p.name.includes(search.toLowerCase()))
+  return (
+    <Box sx={{ p: 2 }}>
+      {/* Barra de busca */}
+      <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+        <TextField
+          label="Buscar Pokémon pelo nome"
+          variant="outlined"
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          fullWidth
+        />
+        <Button variant="contained" onClick={handleSearch}>
+          Buscar
+        </Button>
+      </Box>
 
+      {/* Lista de pokémons */}
+      <Grid container spacing={3} justifyContent="center">
+        {currentPokemons.map((pokemon) => (
+          <Grid item xs={12} sm={6} md={3} lg={2} key={pokemon.name}>
+            <PokemonCard pokemon={pokemon} />
+          </Grid>
+        ))}
+      </Grid>
 
-    return (
-        <Container sx={{ mt: 4 }}>
-            <TextField label="Buscar por nome" value={search} onChange={(e) => setSearch(e.target.value)} fullWidth />
-
-
-            {loading ? <CircularProgress sx={{ mt: 2 }} /> : error ? <div>{error}</div> : (
-                <Grid container spacing={3} justifyContent="center" sx={{ mt: 2 }}>
-                    {filtered.map(p => (
-                        <Grid item xs={12} sm={6} md={3} lg={2} key={p.name}>
-                            <PokemonCard pokemon={p} />
-                        </Grid>
-                    ))}
-                </Grid>
-            )}
-
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
-                <Button variant="contained" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
-                <Button variant="contained" onClick={() => setPage(page + 1)}>Próxima</Button>
-            </div>
-        </Container>
-    )
+      {/* Paginação */}
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 2 }}>
+        <Button
+          variant="outlined"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => prev - 1)}
+        >
+          Anterior
+        </Button>
+        <Button
+          variant="outlined"
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+        >
+          Próxima
+        </Button>
+      </Box>
+    </Box>
+  );
 }
