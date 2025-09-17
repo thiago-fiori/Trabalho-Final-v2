@@ -1,60 +1,67 @@
-import React, { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { getPokemonDetails } from '../services/pokeService'
-import { Container, Typography, CircularProgress, Chip, Stack } from '@mui/material'
-
+// src/pages/Details.jsx
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import {
+  Box,
+  Typography,
+  Chip,
+  CircularProgress,
+  Grid,
+} from "@mui/material";
 
 export default function Details() {
-    const { name } = useParams()
-    const [pokemon, setPokemon] = useState(null)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState(null)
+  const { name } = useParams();
+  const [pokemon, setPokemon] = useState(null);
 
+  useEffect(() => {
+    const fetchPokemon = async () => {
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+      const data = await res.json();
+      setPokemon(data);
+    };
+    fetchPokemon();
+  }, [name]);
 
-    useEffect(() => {
-        let isMounted = true
-        const fetch = async () => {
-            setLoading(true)
-            setError(null)
-            try {
-                const data = await getPokemonDetails(name)
-                if (isMounted) setPokemon(data)
-            } catch (err) {
-                setError('Não foi possível carregar detalhes.')
-            } finally {
-                setLoading(false)
-            }
-        }
+  if (!pokemon) return <CircularProgress />;
 
+  return (
+    <Box sx={{ p: 4, textAlign: "center", color: "text.primary" }}>
+      <Typography variant="h3" sx={{ mb: 2, fontWeight: "bold" }}>
+        {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+      </Typography>
 
-        fetch()
-        return () => { isMounted = false }
-    }, [name])
+      <img
+        src={pokemon.sprites.other["official-artwork"].front_default}
+        alt={pokemon.name}
+        width={200}
+        height={200}
+      />
 
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="h5" sx={{ mb: 1 }}>
+          Tipos
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+          {pokemon.types.map((t) => (
+            <Chip key={t.type.name} label={t.type.name} />
+          ))}
+        </Box>
+      </Box>
 
-    if (loading) return <Container sx={{ mt: 4 }}><CircularProgress /></Container>
-    if (error) return <Container sx={{ mt: 4 }}>{error}</Container>
-    if (!pokemon) return null
-
-
-    return (
-        <Container sx={{ mt: 4 }}>
-            <Typography variant="h4" textTransform="capitalize">{pokemon.name}</Typography>
-            <img src={pokemon.sprites.front_default} alt={pokemon.name} />
-
-
-            <Typography variant="h6">Tipos</Typography>
-            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                {pokemon.types.map(t => <Chip key={t.type.name} label={t.type.name} />)}
-            </Stack>
-
-
-            <Typography variant="h6" sx={{ mt: 2 }}>Stats</Typography>
-            <div>
-                {pokemon.stats.map(s => (
-                    <div key={s.stat.name}><strong>{s.stat.name}:</strong> {s.base_stat}</div>
-                ))}
-            </div>
-        </Container>
-    )
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" sx={{ mb: 2 }}>
+          Stats
+        </Typography>
+        <Grid container spacing={1} justifyContent="center">
+          {pokemon.stats.map((s) => (
+            <Grid item xs={6} sm={4} key={s.stat.name}>
+              <Typography>
+                <strong>{s.stat.name}:</strong> {s.base_stat}
+              </Typography>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    </Box>
+  );
 }
