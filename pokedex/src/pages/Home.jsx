@@ -1,4 +1,3 @@
-// src/pages/Home.jsx
 import { useEffect, useState } from "react";
 import { Grid, TextField, Button, Box } from "@mui/material";
 import PokemonCard from "../components/PokemonCard";
